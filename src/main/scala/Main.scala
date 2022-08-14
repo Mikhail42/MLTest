@@ -57,17 +57,15 @@ def my_best_svm(data: DataFrame) =
 
 def parzen_window(data: DataFrame, k: Int, step: Double) =
   val (x, y) = extract_x_normalized_y(data)
-  val distance = new EuclideanDistance()
   val weightedDistance = new Metric[Array[Double]] {
     def core(el: Double): Double = if math.abs(el) < 1 then 1 - el * el else 0
     def d(x1: Array[Double], x2: Array[Double]): Double =
-      val xs1DivStep = x1.map(_ / step)
-      val xs2DivStep = x2.map(_ / step)
-      for (i <- 0 until x2.length) {
-        xs1DivStep(i) = core(xs1DivStep(i))
-        xs2DivStep(i) = core(xs2DivStep(i))
+      val weight = new Array[Double](x1.length)
+      for (i <- 0 until weight.length) {
+        weight(i) = core((x1(i) - x2(i)) / step)
       }
-      distance.d(xs1DivStep, xs2DivStep)
+      val distance = new EuclideanDistance(weight)
+      distance.d(x1, x2)
   }
   smile.validation.cv.classification(k=10, x, y) { case (x, y) => knn(x, y, k = k, weightedDistance) }
 
@@ -81,6 +79,6 @@ def my_best_parzen_window(data: DataFrame) =
 @main def main(): Unit =
   val wineCsv = Paths.get(getClass.getClassLoader.getResource("wine.data").toURI).toFile
   val wine: DataFrame = read.csv(wineCsv.getAbsolutePath)
-  println("best k-NN: " + my_best_knn(wine))
-  println("best SVM: " + my_best_svm(wine))
-  println("best Parzen window: " + my_best_parzen_window(wine))
+  println("best k-NN: " + my_best_knn(wine))  // k=3, accuracy=96.81% ± 3.44
+  println("best SVM: " + my_best_svm(wine))   // sigma=1.5, regulation=6.0, accuracy=1.0
+  println("best Parzen window: " + my_best_parzen_window(wine)) // k=3, step=0.8, accuracy=97.65% ± 4.11
