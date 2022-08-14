@@ -3,7 +3,9 @@ package org.ionkin.ml.test
 import smile.classification.*
 import smile.data.DataFrame
 import smile.math.MathEx
+import smile.math.distance.{Distance, EuclideanDistance, Metric}
 import smile.math.kernel.GaussianKernel
+import smile.neighbor.{LinearSearch, MPLSH}
 import smile.validation.ClassificationValidations
 import smile.validation.metric.Error
 import smile.{data, read}
@@ -11,6 +13,7 @@ import smile.{data, read}
 import java.nio.file.Paths
 import java.util.Random
 import scala.reflect.ClassTag
+import scala.util.Try
 
 
 def extract_x_normalized_y(data: DataFrame) =
@@ -52,8 +55,32 @@ def my_best_svm(data: DataFrame) =
   } yield (sigma, regulation, my_svm(data, sigma, regulation))
   svm_accuracies.maxBy(_._3)
 
+def parzen_window(data: DataFrame, k: Int, step: Double) =
+  val (x, y) = extract_x_normalized_y(data)
+  val distance = new EuclideanDistance()
+  val weightedDistance = new Metric[Array[Double]] {
+    def core(el: Double): Double = if math.abs(el) < 1 then 1 - el * el else 0
+    def d(x1: Array[Double], x2: Array[Double]): Double =
+      val xs1DivStep = x1.map(_ / step)
+      val xs2DivStep = x2.map(_ / step)
+      for (i <- 0 until x2.length) {
+        xs1DivStep(i) = core(xs1DivStep(i))
+        xs2DivStep(i) = core(xs2DivStep(i))
+      }
+      distance.d(xs1DivStep, xs2DivStep)
+  }
+  smile.validation.cv.classification(k=10, x, y) { case (x, y) => knn(x, y, k = k, weightedDistance) }
+
+def my_best_parzen_window(data: DataFrame) =
+  val ks = (1 until 30).toArray
+  val steps = (1 until 40).toArray.map(_ * 0.1)
+  (for (k <- ks; s <- steps; m <- Try(parzen_window(data, k, s)).toOption.toList)
+    yield (k, s, m)
+  ).maxBy(_._3.avg.accuracy)
+
 @main def main(): Unit =
   val wineCsv = Paths.get(getClass.getClassLoader.getResource("wine.data").toURI).toFile
   val wine: DataFrame = read.csv(wineCsv.getAbsolutePath)
   println("best k-NN: " + my_best_knn(wine))
   println("best SVM: " + my_best_svm(wine))
+  println("best Parzen window: " + my_best_parzen_window(wine))
