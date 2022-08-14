@@ -22,7 +22,8 @@ def extract_x_normalized_y(data: DataFrame) =
 def get_test_indexes(testSize: Int): Set[Int] =
   new Random(42).ints(testSize, 0, testSize).toArray.toSet
 
-def split_train_test[T : ClassTag](ar: Array[T], testSize: Int): (Array[T], Array[T]) =
+def split_train_test[T : ClassTag](ar: Array[T]): (Array[T], Array[T]) =
+  val testSize = (ar.length * 0.3).toInt
   val testIndexes: Set[Int] = get_test_indexes(testSize)
   ar.zipWithIndex.partition { case (el, i) => !testIndexes.contains(i) } match
     case (tr, ts) => (tr.map(_._1), ts.map(_._1))
@@ -36,9 +37,8 @@ def my_best_knn(data: DataFrame) =
 
 def my_svm(data: DataFrame, sigma: Double, regulation: Double) =
   val (x, y) = extract_x_normalized_y(data)
-  val testSize = (x.length * 0.3).toInt
-  val (x_train, x_test) = split_train_test(x, testSize)
-  val (y_train, y_test) = split_train_test(y, testSize)
+  val (x_train, x_test) = split_train_test(x)
+  val (y_train, y_test) = split_train_test(y)
   val kernel = new GaussianKernel(sigma)
   val model = OneVersusOne.fit(x_train, y_train, (x_i, y) => svm(x_i, y, kernel, regulation))
   val prediction = model.predict(x_test)
