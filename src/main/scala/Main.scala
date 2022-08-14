@@ -1,17 +1,25 @@
 package org.ionkin.ml.test
 
-import java.nio.file.Paths
 import smile.classification.*
-import smile.data.formula.FormulaBuilder
-import smile.read
-import smile.data.formula.FormulaBuilder.*
-import smile.data.formula.Terms
+import smile.data.DataFrame
+import smile.math.MathEx
+import smile.validation.ClassificationValidations
+import smile.{data, read}
 
-import scala.collection.mutable.ListBuffer
+import java.nio.file.Paths
+
+def my_knn(data: DataFrame): Unit =
+  val y: Array[Int] = data.intVector(0).toIntArray.map(x => x-1)
+  val x: Array[Array[Double]] = data.drop(0).toArray
+  MathEx.normalize(x)
+  val startTime = System.currentTimeMillis()
+  val kFold = 10
+  val metrics: ClassificationValidations[KNN[Array[Double]]] =
+    smile.validation.cv.classification(kFold, x, y) { case (x, y) => knn(x, y, 5) }
+  println(System.currentTimeMillis() - startTime + " ms")
+  println(metrics)
 
 @main def main(): Unit =
   val wineCsv = Paths.get(getClass.getClassLoader.getResource("wine.data").toURI).toFile
-  val wine = read.csv(wineCsv.getAbsolutePath)
-  val formula = FormulaBuilder(Option(Terms.$("1")), ListBuffer()).toFormula
-  val model = randomForest(formula, wine)
-  println(model.metrics)
+  val wine: DataFrame = read.csv(wineCsv.getAbsolutePath)
+  my_knn(wine)
