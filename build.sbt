@@ -1,8 +1,8 @@
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
-ThisBuild / scalaVersion := "3.1.3"
+ThisBuild / scalaVersion := "2.13.8"
 
-lazy val smile = ("com.github.haifengl" %% "smile-scala" % "2.6.0").cross(CrossVersion.for3Use2_13)
+lazy val smile = "com.github.haifengl" %% "smile-scala" % "2.6.0"
 
 // https://github.com/haifengl/smile
 def allOsClassifiers(moduleId: ModuleID): ModuleID =
