@@ -61,7 +61,7 @@ def parzen_window(data: DataFrame, k: Int, step: Double) =
     def core(el: Double): Double = if math.abs(el) < 1 then 1 - el * el else 0
     def d(x1: Array[Double], x2: Array[Double]): Double =
       val weight = new Array[Double](x1.length)
-      for (i <- 0 until weight.length) {
+      for (i <- weight.indices) {
         weight(i) = core((x1(i) - x2(i)) / step)
       }
       val distance = new EuclideanDistance(weight)
