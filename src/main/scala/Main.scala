@@ -1,7 +1,7 @@
 package org.ionkin.ml.test
 
 import smile.classification
-import smile.classification.{KNN, OneVersusOne}
+import smile.classification.{Classifier, KNN, OneVersusOne}
 import smile.data.DataFrame
 import smile.math.MathEx
 import smile.math.distance.{EuclideanDistance, Metric}
@@ -12,6 +12,7 @@ import smile.read
 
 import java.nio.file.Paths
 import java.util.Random
+import java.util.function.BiFunction
 import scala.reflect.ClassTag
 import scala.util.Try
 
@@ -19,7 +20,7 @@ object Main {
 
   def extract_x_normalized_y(data: DataFrame): (Array[Array[Double]], Array[Int]) = {
     val y: Array[Int] = data.intVector(0).toIntArray.map(x => x - 1)
-    val x: Array[Array[Double]] = data.drop(0).toArray
+    val x: Array[Array[Double]] = data.drop(0).toArray()
     MathEx.normalize(x)
     (x, y)
   }
@@ -48,7 +49,10 @@ object Main {
     val (x_train, x_test) = split_train_test(x)
     val (y_train, y_test) = split_train_test(y)
     val kernel = new GaussianKernel(sigma)
-    val model = OneVersusOne.fit(x_train, y_train, { case (x_i, y) => classification.svm(x_i, y, kernel, regulation) })
+    val trainer: BiFunction[Array[Array[Double]], Array[Int], Classifier[Array[Double]]] = { case (x, y) =>
+      classification.svm(x, y, kernel, regulation)
+    }
+    val model = OneVersusOne.fit(x_train, y_train, trainer)
     val prediction = model.predict(x_test)
     val err = Error.of(y_test, prediction)
     1 - err.toDouble / y_test.length
