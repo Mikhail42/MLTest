@@ -93,7 +93,7 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     val wineCsv = Paths.get(getClass.getClassLoader.getResource("wine.data").toURI).toFile
-    val wine: DataFrame = read.csv(wineCsv.getAbsolutePath)
+    val wine: DataFrame = read.csv(wineCsv.getAbsolutePath, header = false)
     println("best k-NN: " + my_best_knn(wine)) // k=3, accuracy=96.81% ± 3.44
     println("best SVM: " + my_best_svm(wine)) // sigma=1.5, regulation=6.0, accuracy=1.0
     println("best Parzen window: " + my_best_parzen_window(wine)) // k=3, step=0.8, accuracy=97.65% ± 4.11
