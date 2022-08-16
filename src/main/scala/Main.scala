@@ -18,10 +18,14 @@ import scala.util.Try
 
 object Main {
 
-  def extract_x_normalized_y(data: DataFrame): (Array[Array[Double]], Array[Int]) = {
+  def normalize(data: DataFrame): Unit =
+    for (i <- 1 until 14) {
+      MathEx.standardize(data.doubleVector(i).array())
+    }
+
+  def extract_x_y(data: DataFrame): (Array[Array[Double]], Array[Int]) = {
     val y: Array[Int] = data.intVector(0).toIntArray.map(x => x - 1)
     val x: Array[Array[Double]] = data.drop(0).toArray()
-    MathEx.normalize(x)
     (x, y)
   }
 
@@ -94,6 +98,7 @@ object Main {
   def main(args: Array[String]): Unit = {
     val wineCsv = Paths.get(getClass.getClassLoader.getResource("wine.data").toURI).toFile
     val wine: DataFrame = read.csv(wineCsv.getAbsolutePath, header = false)
+    normalize(wine)
     println("best k-NN: " + my_best_knn(wine)) // k=3, accuracy=96.81% ± 3.44
     println("best SVM: " + my_best_svm(wine)) // sigma=1.5, regulation=6.0, accuracy=1.0
     println("best Parzen window: " + my_best_parzen_window(wine)) // k=3, step=0.8, accuracy=97.65% ± 4.11
