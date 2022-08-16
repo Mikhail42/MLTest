@@ -1,17 +1,17 @@
 package org.ionkin.ml.test
 
-import smile.classification.{Classifier, KNN, OneVersusOne}
+import smile.classification.{Classifier, KNN, OneVersusOne, SVM}
 import smile.data.DataFrame
+import smile.hpo.Hyperparameters
 import smile.math.MathEx
 import smile.math.distance.{EuclideanDistance, Metric}
-import smile.math.kernel.GaussianKernel
 import smile.{classification, read}
 import smile.validation.ClassificationValidations
 import smile.validation.metric.Error
 
 import java.nio.file.Paths
-import java.util.Random
 import java.util.function.BiFunction
+import java.util.{Properties, Random}
 import scala.reflect.ClassTag
 import scala.util.Try
 
@@ -41,12 +41,10 @@ object Main {
   def my_best_knn(x: Array[Array[Double]], y: Array[Int]): (Int, ClassificationValidations[KNN[Array[Double]]]) =
     (1 until 30).map(k => (k, my_knn(x, y, k))).maxBy(_._2.avg.accuracy)
 
-  def my_svm(x: Array[Array[Double]], y: Array[Int], sigma: Double, regulation: Double): Double = {
-    val (x_train, x_test) = split_train_test(x)
-    val (y_train, y_test) = split_train_test(y)
-    val kernel = new GaussianKernel(sigma)
+  def my_svm(x_train: Array[Array[Double]], x_test: Array[Array[Double]],
+             y_train: Array[Int], y_test: Array[Int], params: Properties): Double = {
     val trainer: BiFunction[Array[Array[Double]], Array[Int], Classifier[Array[Double]]] = { case (x, y) =>
-      classification.svm(x, y, kernel, regulation)
+      SVM.fit(x, y, params)
     }
     val model = OneVersusOne.fit(x_train, y_train, trainer)
     val prediction = model.predict(x_test)
@@ -54,12 +52,18 @@ object Main {
     1 - err.toDouble / y_test.length
   }
 
-  def my_best_svm(x: Array[Array[Double]], y: Array[Int]): (Double, Double, Double) = {
-    val svm_accuracies = for {
-      sigma <- (1 until 20).map(_.toDouble / 2)
-      regulation <- (1 until 20).map(_.toDouble / 2)
-    } yield (sigma, regulation, my_svm(x, y, sigma, regulation))
-    svm_accuracies.maxBy(_._3)
+  def my_best_svm(x: Array[Array[Double]], y: Array[Int]): List[(Properties, Double)] = {
+    val (x_train, x_test) = split_train_test(x)
+    val (y_train, y_test) = split_train_test(y)
+    val hp = new Hyperparameters()
+      .add("smile.svm.kernel", "linear" +: (1 until 5).toArray.map(x => s"Gaussian(${x.toDouble / 4})"))
+      .add("smile.svm.C", (1 until 20).toArray.map(x => x.toDouble / 2))
+      .add("smile.svm.epochs", (1 to 3).toArray)
+    val bestModels = hp.grid().toArray(k => new Array[Properties](k)).map { params =>
+      (params, Try(my_svm(x_train, x_test, y_train, y_test, params)))
+    }.filter(_._2.isSuccess).map(e => (e._1, e._2.get)).sortBy(_._2)(Ordering.Double.TotalOrdering.reverse)
+    val bestAccuracy: Double = bestModels(0)._2
+    bestModels.takeWhile(e => e._2 == bestAccuracy).toList.map(e => (e._1, e._2))
   }
 
   def parzen_window(x: Array[Array[Double]], y: Array[Int],
