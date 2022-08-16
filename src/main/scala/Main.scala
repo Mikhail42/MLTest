@@ -1,14 +1,13 @@
 package org.ionkin.ml.test
 
-import smile.classification
 import smile.classification.{Classifier, KNN, OneVersusOne}
 import smile.data.DataFrame
 import smile.math.MathEx
 import smile.math.distance.{EuclideanDistance, Metric}
 import smile.math.kernel.GaussianKernel
+import smile.{classification, read}
 import smile.validation.ClassificationValidations
 import smile.validation.metric.Error
-import smile.read
 
 import java.nio.file.Paths
 import java.util.Random
@@ -17,11 +16,6 @@ import scala.reflect.ClassTag
 import scala.util.Try
 
 object Main {
-
-  def normalize(data: DataFrame): Unit =
-    for (i <- 1 until 14) {
-      MathEx.standardize(data.doubleVector(i).array())
-    }
 
   def extract_x_y(data: DataFrame): (Array[Array[Double]], Array[Int]) = {
     val y: Array[Int] = data.intVector(0).toIntArray.map(x => x - 1)
@@ -40,16 +34,14 @@ object Main {
     }
   }
 
-  def my_knn(data: DataFrame, k: Int): ClassificationValidations[KNN[Array[Double]]] = {
-    val (x, y) = extract_x_normalized_y(data)
+  def my_knn(x: Array[Array[Double]], y: Array[Int], k: Int): ClassificationValidations[KNN[Array[Double]]] = {
     smile.validation.cv.classification(k = 10, x, y) { case (x, y) => classification.knn(x, y, k = k) }
   }
 
-  def my_best_knn(data: DataFrame): (Int, ClassificationValidations[KNN[Array[Double]]]) =
-    (1 until 30).map(k => (k, my_knn(data, k))).maxBy(_._2.avg.accuracy)
+  def my_best_knn(x: Array[Array[Double]], y: Array[Int]): (Int, ClassificationValidations[KNN[Array[Double]]]) =
+    (1 until 30).map(k => (k, my_knn(x, y, k))).maxBy(_._2.avg.accuracy)
 
-  def my_svm(data: DataFrame, sigma: Double, regulation: Double): Double = {
-    val (x, y) = extract_x_normalized_y(data)
+  def my_svm(x: Array[Array[Double]], y: Array[Int], sigma: Double, regulation: Double): Double = {
     val (x_train, x_test) = split_train_test(x)
     val (y_train, y_test) = split_train_test(y)
     val kernel = new GaussianKernel(sigma)
@@ -62,16 +54,16 @@ object Main {
     1 - err.toDouble / y_test.length
   }
 
-  def my_best_svm(data: DataFrame): (Double, Double, Double) = {
+  def my_best_svm(x: Array[Array[Double]], y: Array[Int]): (Double, Double, Double) = {
     val svm_accuracies = for {
-      sigma <- (1 until 20).map(x => x.toDouble / 2)
-      regulation <- (1 until 20).map(x => x.toDouble / 2)
-    } yield (sigma, regulation, my_svm(data, sigma, regulation))
+      sigma <- (1 until 20).map(_.toDouble / 2)
+      regulation <- (1 until 20).map(_.toDouble / 2)
+    } yield (sigma, regulation, my_svm(x, y, sigma, regulation))
     svm_accuracies.maxBy(_._3)
   }
 
-  def parzen_window(data: DataFrame, k: Int, step: Double): ClassificationValidations[KNN[Array[Double]]] = {
-    val (x, y) = extract_x_normalized_y(data)
+  def parzen_window(x: Array[Array[Double]], y: Array[Int],
+                    k: Int, step: Double): ClassificationValidations[KNN[Array[Double]]] = {
     val weightedDistance = new Metric[Array[Double]] {
       def core(el: Double): Double = if (math.abs(el) < 1) 1 - el * el else 0
 
@@ -87,10 +79,10 @@ object Main {
     smile.validation.cv.classification(k = 10, x, y) { case (x, y) => classification.knn(x, y, k = k, weightedDistance) }
   }
 
-  def my_best_parzen_window(data: DataFrame): (Int, Double, ClassificationValidations[KNN[Array[Double]]]) = {
+  def my_best_parzen_window(x: Array[Array[Double]], y: Array[Int]): (Int, Double, ClassificationValidations[KNN[Array[Double]]]) = {
     val ks = (1 until 30).toArray
     val steps = (1 until 40).toArray.map(_ * 0.1)
-    (for (k <- ks; s <- steps; m <- Try(parzen_window(data, k, s)).toOption.toList)
+    (for (k <- ks; s <- steps; m <- Try(parzen_window(x, y, k, s)).toOption.toList)
       yield (k, s, m)
       ).maxBy(_._3.avg.accuracy)
   }
@@ -98,9 +90,10 @@ object Main {
   def main(args: Array[String]): Unit = {
     val wineCsv = Paths.get(getClass.getClassLoader.getResource("wine.data").toURI).toFile
     val wine: DataFrame = read.csv(wineCsv.getAbsolutePath, header = false)
-    normalize(wine)
-    println("best k-NN: " + my_best_knn(wine)) // k=3, accuracy=96.81% ± 3.44
-    println("best SVM: " + my_best_svm(wine)) // sigma=1.5, regulation=6.0, accuracy=1.0
-    println("best Parzen window: " + my_best_parzen_window(wine)) // k=3, step=0.8, accuracy=97.65% ± 4.11
+    val (x, y): (Array[Array[Double]], Array[Int]) = extract_x_y(wine)
+    MathEx.normalize(x)
+    println("best k-NN: " + my_best_knn(x, y)) // k=3, accuracy=96.81% ± 3.44
+    println("best SVM: " + my_best_svm(x, y)) // sigma=1.5, regulation=6.0, accuracy=1.0
+    println("best Parzen window: " + my_best_parzen_window(x, y)) // k=3, step=0.8, accuracy=97.65% ± 4.11
   }
 }
