@@ -4,7 +4,12 @@ ThisBuild / scalaVersion := "2.13.8"
 
 // close from github, change version to snapshot and publish local
 ThisBuild / resolvers += Resolver.mavenLocal
-lazy val smile = "com.github.haifengl" %% "smile-scala" % "3.0.0-SNAPSHOT"
+lazy val smile = Seq(
+  "com.github.haifengl" %% "smile-scala" % "3.0.0-SNAPSHOT",
+  "com.github.haifengl" %% "smile-spark" % "3.0.0-SNAPSHOT",
+  "com.github.haifengl" %% "smile-shell" % "3.0.0-SNAPSHOT"
+)
+
 
 // https://github.com/haifengl/smile
 def allOsClassifiers(moduleId: ModuleID): ModuleID =
@@ -21,7 +26,7 @@ lazy val byteDecoLibs = Seq(
   withOSClassifier("org.bytedeco" % "arpack-ng" % "3.8.0-1.5.7")
 )
 
-libraryDependencies ++= Seq(smile) ++ byteDecoLibs
+libraryDependencies ++= smile ++ byteDecoLibs
 
 lazy val root = (project in file("."))
   .settings(
