@@ -47,13 +47,21 @@ object Main extends StrictLogging {
 
   def my_svm(x_train: Array[Array[Double]], x_test: Array[Array[Double]],
              y_train: Array[Int], y_test: Array[Int], params: Properties): Double = {
-    val trainer: BiFunction[Array[Array[Double]], Array[Int], Classifier[Array[Double]]] = { case (x, y) =>
-      SVM.fit(x, y, params)
+    val classes = y_train.toSet.size
+    val model: Classifier[Array[Double]] = if (classes > 2) {
+      val trainer: BiFunction[Array[Array[Double]], Array[Int], Classifier[Array[Double]]] = {
+        case (x, y) =>
+          SVM.fit(x, y, params)
+      }
+      OneVersusOne.fit(x_train, y_train, trainer)
+    } else {
+      SVM.fit(x_train, y_train, params)
     }
-    val model = OneVersusOne.fit(x_train, y_train, trainer)
     val prediction = model.predict(x_test)
     val err = Error.of(y_test, prediction)
-    1 - err.toDouble / y_test.length
+    val accuracy = 1 - err.toDouble / y_test.length
+    logger.debug(s"accuracy=$accuracy for SVM with params=$params")
+    accuracy
   }
 
   def my_best_svm(x: Array[Array[Double]], y: Array[Int]): List[(Properties, Double)] = {
@@ -63,6 +71,7 @@ object Main extends StrictLogging {
       .add("smile.svm.kernel", "linear" +: (1 until 5).toArray.map(x => s"Gaussian(${x.toDouble / 4})"))
       .add("smile.svm.C", (1 until 20).toArray.map(x => x.toDouble / 2))
       .add("smile.svm.epochs", (1 to 3).toArray)
+    // (5+1)*20*3=120*3=360 iterations, ~0.75 seconds per iter for spamdata, total ~4.5 minutes for spam
     val bestModels = hp.grid().toArray(k => new Array[Properties](k)).map { params =>
       (params, Try(my_svm(x_train, x_test, y_train, y_test, params)))
     }.filter(_._2.isSuccess).map(e => (e._1, e._2.get)).sortBy(_._2)(Ordering.Double.TotalOrdering.reverse)
@@ -84,12 +93,14 @@ object Main extends StrictLogging {
         distance.d(x1, x2)
       }
     }
-    smile.validation.cv.classification(k = 10, x, y) { case (x, y) => classification.knn(x, y, k = k, weightedDistance) }
+    val res = smile.validation.cv.classification(k = 10, x, y) { case (x, y) => classification.knn(x, y, k = k, weightedDistance) }
+    logger.debug(s"parzen_window with k=$k, step=$step, accuracy=${res.avg.accuracy}")
+    res
   }
 
   def my_best_parzen_window(x: Array[Array[Double]], y: Array[Int]): (Int, Double, ClassificationValidations[KNN[Array[Double]]]) = {
-    val ks = (1 until 30).toArray
-    val steps = (1 until 40).toArray.map(_ * 0.1)
+    val ks = (1 until 10).map(_ * 2 - 1).toArray
+    val steps = (1 until 10).toArray.map(_ * 0.4)
     (for (k <- ks; s <- steps; m <- Try(parzen_window(x, y, k, s)).toOption.toList)
       yield (k, s, m)
       ).maxBy(_._3.avg.accuracy)
@@ -116,6 +127,9 @@ object Main extends StrictLogging {
   def spam(): Unit = {
     val spamPath = Paths.get(getClass.getClassLoader.getResource("spambase.csv").toURI).toFile
     show_best(spamPath, y_column_id = -1)
+    // k=1, accuracy=91.33% ± 1.29 for k-NN
+    // sigma=0.25, regulation=9.5, epochs=2, accuracy=0.838 for SVM
+    // k=1, step=1.2, accuracy=91.68% ± 1.05 for Parzen window
   }
 
   def main(args: Array[String]): Unit = {
