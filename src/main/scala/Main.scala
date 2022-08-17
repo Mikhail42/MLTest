@@ -106,12 +106,26 @@ object Main extends StrictLogging {
       ).maxBy(_._3.avg.accuracy)
   }
 
-  def my_mlp(x: Array[Array[Double]], y: Array[Int]): ClassificationValidations[MLP] = {
-    val props = new Properties()
-    smile.validation.cv.classification(math.min(y.length / 10, 20), x, y) { case (x, y) =>
+  def my_mlp(x: Array[Array[Double]], y: Array[Int], props: Properties ): ClassificationValidations[MLP] = {
+    val res = smile.validation.cv.classification(math.min(y.length / 10, 20), x, y) { case (x, y) =>
       val mlp = MLP.fit(x, y, props)
       mlp
     }
+    //logger.debug(s"MLP accuracy=${res.avg.accuracy} for params=$props")
+    res
+  }
+
+  def my_best_mlp(x: Array[Array[Double]], y: Array[Int]): Unit = {
+    val hp = new Hyperparameters()
+      .add("smile.mlp.layers", (1 until 5).toArray.map(x => s"ReLU(${(x-1)*20+1})") ++
+        (1 until 5).toArray.map(x => s"Sigmoid(${(x-1)*20+1})"))
+      .add("smile.mlp.mini_batch", Array(1, 3, 10, 30, 100))
+      .add("smile.mlp.epochs", Array(1, 3, 10, 30, 100))
+    val bestModels = hp.grid().toArray(k => new Array[Properties](k)).map { params =>
+      (params, Try(my_mlp(x, y, params)))
+    }.filter(_._2.isSuccess).map(e => (e._1, e._2.get.avg.accuracy)).sortBy(_._2)(Ordering.Double.TotalOrdering.reverse)
+    val bestAccuracy: Double = bestModels(0)._2
+    bestModels.takeWhile(e => e._2 == bestAccuracy).toList.map(e => (e._1, e._2))
   }
 
   def show_best(path: File, y_column_id: Int): Unit = {
@@ -119,7 +133,7 @@ object Main extends StrictLogging {
     val y_col_id = if (y_column_id >= 0) y_column_id else data.ncol() + y_column_id
     val (x, y): (Array[Array[Double]], Array[Int]) = extract_x_y(data, y_col_id)
     MathEx.normalize(x)
-    logger.info("MLP: " + my_mlp(x, y))
+    logger.info("best MLP: " + my_best_mlp(x, y))
     logger.info("best k-NN: " + my_best_knn(x, y))
     logger.info("best SVM: " + my_best_svm(x, y))
     logger.info("best Parzen window: " + my_best_parzen_window(x, y))
