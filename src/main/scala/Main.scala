@@ -142,7 +142,7 @@ object Main extends StrictLogging {
   def wine(): Unit = {
     val winePath = Paths.get(getClass.getClassLoader.getResource("wine.csv").toURI).toFile
     show_best(winePath, y_column_id = 0)
-    // 40.68% ± 9.86 for default MLP
+    // MLP accuracy=0.9339869281045754 for epochs=100, layers=ReLU(41), mini_batch=1
     // k=3, accuracy=96.81% ± 3.44 for k-NN
     // sigma=1.5, regulation=6.0, accuracy=1.0 (100%)  for SVM
     // k=3, step=0.8, accuracy=97.65% ± 4.11 for Parzen window
@@ -151,7 +151,8 @@ object Main extends StrictLogging {
   def spam(): Unit = {
     val spamPath = Paths.get(getClass.getClassLoader.getResource("spambase.csv").toURI).toFile
     show_best(spamPath, y_column_id = -1)
-    // 63.53% ± 3.76 for default MLP
+    // MLP accuracy=0.9200178806700545 for epochs=100, layers=ReLU(21), mini_batch=1,
+    // optimization for MLP can be really slow (1-30 seconds per iteration)
     // k=1, accuracy=91.33% ± 1.29 for k-NN
     // sigma=0.25, regulation=9.5, epochs=2, accuracy=0.838 (83.8%) for SVM
     // k=1, step=1.2, accuracy=91.68% ± 1.05 for Parzen window
