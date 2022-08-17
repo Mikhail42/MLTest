@@ -1,7 +1,7 @@
 package org.ionkin.ml.test
 
 import com.typesafe.scalalogging.StrictLogging
-import smile.classification.{Classifier, KNN, MLP, OneVersusOne, SVM}
+import smile.classification.{Classifier, KNN, MLP, OneVersusOne, RDA, SVM}
 import smile.data.DataFrame
 import smile.hpo.Hyperparameters
 import smile.math.MathEx
@@ -106,7 +106,7 @@ object Main extends StrictLogging {
       ).maxBy(_._3.avg.accuracy)
   }
 
-  def my_mlp(x: Array[Array[Double]], y: Array[Int], props: Properties ): ClassificationValidations[MLP] = {
+  def my_mlp(x: Array[Array[Double]], y: Array[Int], props: Properties): ClassificationValidations[MLP] = {
     val res = smile.validation.cv.classification(math.min(y.length / 10, 20), x, y) { case (x, y) =>
       val mlp = MLP.fit(x, y, props)
       mlp
@@ -128,11 +128,27 @@ object Main extends StrictLogging {
     bestModels.takeWhile(e => e._2 == bestAccuracy).toList.map(e => (e._1, e._2))
   }
 
+  def my_rda(x: Array[Array[Double]], y: Array[Int], props: Properties): ClassificationValidations[RDA] =
+    smile.validation.cv.classification(math.min(y.length / 10, 20), x, y) { case (x, y) =>
+      RDA.fit(x, y, props)
+    }
+
+  def my_best_rda(x: Array[Array[Double]], y: Array[Int]) = {
+    val hp = new Hyperparameters()
+      .add("smile.rda.alpha", (0 to 10).map(_ * 0.1).toArray)
+    val bestModels = hp.grid().toArray(k => new Array[Properties](k)).map { params =>
+      (params, Try(my_rda(x, y, params)))
+    }.filter(_._2.isSuccess).map(e => (e._1, e._2.get.avg.accuracy)).sortBy(_._2)(Ordering.Double.TotalOrdering.reverse)
+    val bestAccuracy: Double = bestModels(0)._2
+    bestModels.takeWhile(e => e._2 == bestAccuracy).toList.map(e => (e._1, e._2))
+  }
+
   def show_best(path: File, y_column_id: Int): Unit = {
     val data: DataFrame = read.csv(path.getAbsolutePath, header = false)
     val y_col_id = if (y_column_id >= 0) y_column_id else data.ncol() + y_column_id
     val (x, y): (Array[Array[Double]], Array[Int]) = extract_x_y(data, y_col_id)
     MathEx.normalize(x)
+    logger.info("best RDA: " + my_best_rda(x, y))
     logger.info("best MLP: " + my_best_mlp(x, y))
     logger.info("best k-NN: " + my_best_knn(x, y))
     logger.info("best SVM: " + my_best_svm(x, y))
@@ -142,6 +158,7 @@ object Main extends StrictLogging {
   def wine(): Unit = {
     val winePath = Paths.get(getClass.getClassLoader.getResource("wine.csv").toURI).toFile
     show_best(winePath, y_column_id = 0)
+    // accuracy=99.4% for RDA for alpha=0.1:0.1:1 (maybe with few exceptions)
     // MLP accuracy=0.9339869281045754 for epochs=100, layers=ReLU(41), mini_batch=1
     // k=3, accuracy=96.81% ± 3.44 for k-NN
     // sigma=1.5, regulation=6.0, accuracy=1.0 (100%)  for SVM
@@ -151,6 +168,7 @@ object Main extends StrictLogging {
   def spam(): Unit = {
     val spamPath = Paths.get(getClass.getClassLoader.getResource("spambase.csv").toURI).toFile
     show_best(spamPath, y_column_id = -1)
+    // RDA: accuracy=89.65% for alpha=0.1. very fast optimization
     // MLP accuracy=0.9200178806700545 for epochs=100, layers=ReLU(21), mini_batch=1,
     // optimization for MLP can be really slow (1-30 seconds per iteration)
     // k=1, accuracy=91.33% ± 1.29 for k-NN
