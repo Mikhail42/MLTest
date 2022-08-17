@@ -10,6 +10,7 @@ import smile.{classification, read}
 import smile.validation.ClassificationValidations
 import smile.validation.metric.Error
 
+import java.io.File
 import java.nio.file.Paths
 import java.util.function.BiFunction
 import java.util.{Properties, Random}
@@ -18,9 +19,11 @@ import scala.util.Try
 
 object Main extends StrictLogging {
 
-  def extract_x_y(data: DataFrame): (Array[Array[Double]], Array[Int]) = {
-    val y: Array[Int] = data.intVector(0).toIntArray.map(x => x - 1)
-    val x: Array[Array[Double]] = data.drop(0).toArray()
+  def extract_x_y(data: DataFrame, y_column_id: Int): (Array[Array[Double]], Array[Int]) = {
+    val y0: Array[Int] = data.intVector(y_column_id).toIntArray
+    val y_min = y0.min
+    val y = y0.map(x => x - y_min)
+    val x: Array[Array[Double]] = data.drop(y_column_id).toArray()
     (x, y)
   }
 
@@ -92,13 +95,32 @@ object Main extends StrictLogging {
       ).maxBy(_._3.avg.accuracy)
   }
 
-  def main(args: Array[String]): Unit = {
-    val wineCsv = Paths.get(getClass.getClassLoader.getResource("wine.data").toURI).toFile
-    val wine: DataFrame = read.csv(wineCsv.getAbsolutePath, header = false)
-    val (x, y): (Array[Array[Double]], Array[Int]) = extract_x_y(wine)
+  def show_best(path: File, y_column_id: Int): Unit = {
+    val data: DataFrame = read.csv(path.getAbsolutePath, header = false)
+    val y_col_id = if (y_column_id >= 0) y_column_id else data.ncol() + y_column_id
+    val (x, y): (Array[Array[Double]], Array[Int]) = extract_x_y(data, y_col_id)
     MathEx.normalize(x)
-    println("best k-NN: " + my_best_knn(x, y)) // k=3, accuracy=96.81% ± 3.44
-    println("best SVM: " + my_best_svm(x, y)) // sigma=1.5, regulation=6.0, accuracy=1.0
-    println("best Parzen window: " + my_best_parzen_window(x, y)) // k=3, step=0.8, accuracy=97.65% ± 4.11
+    logger.info("best k-NN: " + my_best_knn(x, y))
+    logger.info("best SVM: " + my_best_svm(x, y))
+    logger.info("best Parzen window: " + my_best_parzen_window(x, y))
+  }
+
+  def wine(): Unit = {
+    val winePath = Paths.get(getClass.getClassLoader.getResource("wine.csv").toURI).toFile
+    show_best(winePath, y_column_id = 0)
+    // k=3, accuracy=96.81% ± 3.44 for k-NN
+    // sigma=1.5, regulation=6.0, accuracy=1.0 for SVM
+    // k=3, step=0.8, accuracy=97.65% ± 4.11 for Parzen window
+  }
+
+  def spam(): Unit = {
+    val spamPath = Paths.get(getClass.getClassLoader.getResource("spambase.csv").toURI).toFile
+    show_best(spamPath, y_column_id = -1)
+  }
+
+  def main(args: Array[String]): Unit = {
+    logger.info("start")
+    // wine()
+    spam()
   }
 }
