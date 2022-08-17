@@ -1,7 +1,7 @@
 package org.ionkin.ml.test
 
 import com.typesafe.scalalogging.StrictLogging
-import smile.classification.{Classifier, KNN, OneVersusOne, SVM}
+import smile.classification.{Classifier, KNN, MLP, OneVersusOne, SVM}
 import smile.data.DataFrame
 import smile.hpo.Hyperparameters
 import smile.math.MathEx
@@ -60,7 +60,7 @@ object Main extends StrictLogging {
     val prediction = model.predict(x_test)
     val err = Error.of(y_test, prediction)
     val accuracy = 1 - err.toDouble / y_test.length
-    logger.debug(s"accuracy=$accuracy for SVM with params=$params")
+    //logger.debug(s"accuracy=$accuracy for SVM with params=$params")
     accuracy
   }
 
@@ -94,7 +94,7 @@ object Main extends StrictLogging {
       }
     }
     val res = smile.validation.cv.classification(k = 10, x, y) { case (x, y) => classification.knn(x, y, k = k, weightedDistance) }
-    logger.debug(s"parzen_window with k=$k, step=$step, accuracy=${res.avg.accuracy}")
+    //logger.debug(s"parzen_window with k=$k, step=$step, accuracy=${res.avg.accuracy}")
     res
   }
 
@@ -106,11 +106,20 @@ object Main extends StrictLogging {
       ).maxBy(_._3.avg.accuracy)
   }
 
+  def my_mlp(x: Array[Array[Double]], y: Array[Int]): ClassificationValidations[MLP] = {
+    val props = new Properties()
+    smile.validation.cv.classification(math.min(y.length / 10, 20), x, y) { case (x, y) =>
+      val mlp = MLP.fit(x, y, props)
+      mlp
+    }
+  }
+
   def show_best(path: File, y_column_id: Int): Unit = {
     val data: DataFrame = read.csv(path.getAbsolutePath, header = false)
     val y_col_id = if (y_column_id >= 0) y_column_id else data.ncol() + y_column_id
     val (x, y): (Array[Array[Double]], Array[Int]) = extract_x_y(data, y_col_id)
     MathEx.normalize(x)
+    logger.info("MLP: " + my_mlp(x, y))
     logger.info("best k-NN: " + my_best_knn(x, y))
     logger.info("best SVM: " + my_best_svm(x, y))
     logger.info("best Parzen window: " + my_best_parzen_window(x, y))
@@ -119,22 +128,24 @@ object Main extends StrictLogging {
   def wine(): Unit = {
     val winePath = Paths.get(getClass.getClassLoader.getResource("wine.csv").toURI).toFile
     show_best(winePath, y_column_id = 0)
+    // 40.68% ± 9.86 for default MLP
     // k=3, accuracy=96.81% ± 3.44 for k-NN
-    // sigma=1.5, regulation=6.0, accuracy=1.0 for SVM
+    // sigma=1.5, regulation=6.0, accuracy=1.0 (100%)  for SVM
     // k=3, step=0.8, accuracy=97.65% ± 4.11 for Parzen window
   }
 
   def spam(): Unit = {
     val spamPath = Paths.get(getClass.getClassLoader.getResource("spambase.csv").toURI).toFile
     show_best(spamPath, y_column_id = -1)
+    // 63.53% ± 3.76 for default MLP
     // k=1, accuracy=91.33% ± 1.29 for k-NN
-    // sigma=0.25, regulation=9.5, epochs=2, accuracy=0.838 for SVM
+    // sigma=0.25, regulation=9.5, epochs=2, accuracy=0.838 (83.8%) for SVM
     // k=1, step=1.2, accuracy=91.68% ± 1.05 for Parzen window
   }
 
   def main(args: Array[String]): Unit = {
     logger.info("start")
-    // wine()
+    //wine()
     spam()
   }
 }
