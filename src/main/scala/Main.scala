@@ -115,7 +115,7 @@ object Main extends StrictLogging {
     res
   }
 
-  def my_best_mlp(x: Array[Array[Double]], y: Array[Int]): Unit = {
+  def my_best_mlp(x: Array[Array[Double]], y: Array[Int]): List[(Properties, Double)] = {
     val hp = new Hyperparameters()
       .add("smile.mlp.layers", (1 until 5).toArray.map(x => s"ReLU(${(x-1)*20+1})") ++
         (1 until 5).toArray.map(x => s"Sigmoid(${(x-1)*20+1})"))
