@@ -1,5 +1,6 @@
 package org.ionkin.ml.test
 
+import com.typesafe.scalalogging.StrictLogging
 import smile.classification.{Classifier, KNN, OneVersusOne, SVM}
 import smile.data.DataFrame
 import smile.hpo.Hyperparameters
@@ -15,7 +16,7 @@ import java.util.{Properties, Random}
 import scala.reflect.ClassTag
 import scala.util.Try
 
-object Main {
+object Main extends StrictLogging {
 
   def extract_x_y(data: DataFrame): (Array[Array[Double]], Array[Int]) = {
     val y: Array[Int] = data.intVector(0).toIntArray.map(x => x - 1)

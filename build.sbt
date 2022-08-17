@@ -27,6 +27,7 @@ lazy val byteDecoLibs = Seq(
 )
 
 libraryDependencies ++= smile ++ byteDecoLibs
+libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.11"
 
 lazy val root = (project in file("."))
   .settings(
