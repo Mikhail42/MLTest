@@ -13,24 +13,12 @@ import smile.validation.metric.Error
 import java.io.File
 import java.nio.file.Paths
 import java.util.function.BiFunction
-import java.util.{Properties, Random}
-import scala.reflect.ClassTag
+import java.util.Properties
 import scala.util.Try
 
-import org.ionkin.ml.test.Preparator.extract_x_y
+import org.ionkin.ml.test.Preparator._
 
 object Main extends StrictLogging {
-
-  def get_test_indexes(testSize: Int): Set[Int] =
-    new Random(42).ints(testSize, 0, testSize).toArray.toSet
-
-  def split_train_test[T : ClassTag](ar: Array[T]): (Array[T], Array[T]) = {
-    val testSize = (ar.length * 0.3).toInt
-    val testIndexes: Set[Int] = get_test_indexes(testSize)
-    ar.zipWithIndex.partition { case (el, i) => !testIndexes.contains(i) } match {
-      case (tr, ts) => (tr.map(_._1), ts.map(_._1))
-    }
-  }
 
   def my_knn(x: Array[Array[Double]], y: Array[Int], k: Int): ClassificationValidations[KNN[Array[Double]]] = {
     smile.validation.cv.classification(k = 10, x, y) { case (x, y) => classification.knn(x, y, k = k) }
