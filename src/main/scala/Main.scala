@@ -21,8 +21,9 @@ object Main extends StrictLogging {
 
   def extract_x_y(data: DataFrame, y_column_id: Int): (Array[Array[Double]], Array[Int]) = {
     val y0: Array[Int] = data.intVector(y_column_id).toIntArray
-    val y_min = y0.min
-    val y = y0.map(x => x - y_min)
+    // Assume that classes are 2 and 4. Then it will be map (2->0, 4->1)
+    val y_to_y_id: Map[Int, Int] = y0.toSet.toSeq.sorted.zipWithIndex.toMap
+    val y = y0.map(y_to_y_id)
     val x: Array[Array[Double]] = data.drop(y_column_id).toArray()
     (x, y)
   }
