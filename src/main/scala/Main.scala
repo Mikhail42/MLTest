@@ -121,11 +121,7 @@ object Main extends StrictLogging {
         (1 until 5).toArray.map(x => s"Sigmoid(${(x-1)*20+1})"))
       .add("smile.mlp.mini_batch", Array(1, 3, 10, 30, 100))
       .add("smile.mlp.epochs", Array(1, 3, 10, 30, 100))
-    val bestModels = hp.grid().toArray(k => new Array[Properties](k)).map { params =>
-      (params, Try(my_mlp(x, y, params)))
-    }.filter(_._2.isSuccess).map(e => (e._1, e._2.get.avg.accuracy)).sortBy(_._2)(Ordering.Double.TotalOrdering.reverse)
-    val bestAccuracy: Double = bestModels(0)._2
-    bestModels.takeWhile(e => e._2 == bestAccuracy).toList.map(e => (e._1, e._2))
+    optimize(x, y, hp, my_mlp)
   }
 
   def my_rda(x: Array[Array[Double]], y: Array[Int], props: Properties): ClassificationValidations[RDA] =
@@ -133,11 +129,16 @@ object Main extends StrictLogging {
       RDA.fit(x, y, props)
     }
 
-  def my_best_rda(x: Array[Array[Double]], y: Array[Int]) = {
+  def my_best_rda(x: Array[Array[Double]], y: Array[Int]): List[(Properties, Double)] = {
     val hp = new Hyperparameters()
       .add("smile.rda.alpha", (0 to 10).map(_ * 0.1).toArray)
+    optimize(x, y, hp, my_rda)
+  }
+
+  def optimize[X, Y, M](x: X, y: Y, hp: Hyperparameters,
+               opt: (X, Y, Properties) => ClassificationValidations[M]): List[(Properties, Double)] = {
     val bestModels = hp.grid().toArray(k => new Array[Properties](k)).map { params =>
-      (params, Try(my_rda(x, y, params)))
+      (params, Try(opt(x, y, params)))
     }.filter(_._2.isSuccess).map(e => (e._1, e._2.get.avg.accuracy)).sortBy(_._2)(Ordering.Double.TotalOrdering.reverse)
     val bestAccuracy: Double = bestModels(0)._2
     bestModels.takeWhile(e => e._2 == bestAccuracy).toList.map(e => (e._1, e._2))
