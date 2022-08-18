@@ -178,9 +178,15 @@ object Main extends StrictLogging {
     // k=1, step=1.2, accuracy=91.68% ± 1.05 for Parzen window
   }
 
+  def cancer(): Unit = {
+    val spamPath = Paths.get(getClass.getClassLoader.getResource("breast-cancer-wisconsin.csv").toURI).toFile
+    show_best(spamPath, y_column_id = -1)
+  }
+
   def main(args: Array[String]): Unit = {
     logger.info("start")
-    //wine()
+    wine()
     spam()
+    cancer()
   }
 }
