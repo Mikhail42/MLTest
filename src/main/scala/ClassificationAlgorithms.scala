@@ -129,7 +129,7 @@ object ClassificationAlgorithms extends StrictLogging {
   def show_best(path: File, y_column_id: Int): Unit = {
     val data: DataFrame = read.csv(path.getAbsolutePath, header = false)
     val y_col_id = if (y_column_id >= 0) y_column_id else data.ncol() + y_column_id
-    val (x, y): (Array[Array[Double]], Array[Int]) = extract_x_y(data, y_col_id)
+    val (x, y): (Array[Array[Double]], Array[Int]) = classification_extract_x_y(data, y_col_id)
     MathEx.normalize(x)
     logger.info("best RDA: " + my_best_rda(x, y))
     logger.info("best MLP: " + my_best_mlp(x, y))

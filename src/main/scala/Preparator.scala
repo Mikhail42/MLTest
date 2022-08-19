@@ -7,12 +7,32 @@ import scala.reflect.ClassTag
 import scala.util.Try
 
 object Preparator {
-  def extract_x_y(data: DataFrame, y_column_id: Int): (Array[Array[Double]], Array[Int]) = {
-    val y0: Array[Int] = data.intVector(y_column_id).toIntArray
+  def classification_extract_y(data: DataFrame, y_column_id: Int): Array[Int] = {
+    val y0: Array[Int] = data.doubleVector(y_column_id).toIntArray
     // Assume that classes are 2 and 4. Then it will be map (2->0, 4->1)
     val y_to_y_id: Map[Int, Int] = y0.toSet.toSeq.sorted.zipWithIndex.toMap
     val y = y0.map(y_to_y_id)
+    y
+  }
+
+  def regression_extract_y(data: DataFrame, y_column_id: Int): Array[Double] =
+    data.doubleVector(y_column_id).array()
+
+  def regression_extract_x_y(data: DataFrame, y_column_id: Int): (Array[Array[Double]], Array[Double]) = {
+    val y = regression_extract_y(data, y_column_id)
     val x_data = data.drop(y_column_id)
+    val x = extract_x(x_data)
+    (x, y)
+  }
+
+  def classification_extract_x_y(data: DataFrame, y_column_id: Int): (Array[Array[Double]], Array[Int]) = {
+    val y = classification_extract_y(data, y_column_id)
+    val x_data = data.drop(y_column_id)
+    val x = extract_x(x_data)
+    (x, y)
+  }
+
+  def extract_x(x_data: DataFrame): Array[Array[Double]] = {
     // I need to handle 2 cases:
     // 1. when there is no column scheme with double. In this case I can just fix csv and convert 1st row to doubles
     // 2. when there is missing cells in dataset. In this case I can:
@@ -36,7 +56,7 @@ object Preparator {
         x_double_data(i)(k) = d
       }
     }
-    (x_double_data, y)
+    x_double_data
   }
 
   def get_test_indexes(testSize: Int): Set[Int] =
