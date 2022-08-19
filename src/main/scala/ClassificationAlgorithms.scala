@@ -1,7 +1,6 @@
 package org.ionkin.ml.test
 
 
-import Optimizer.optimize
 import Preparator._
 
 import com.typesafe.scalalogging.StrictLogging
@@ -20,6 +19,16 @@ import java.util.function.BiFunction
 import scala.util.Try
 
 object ClassificationAlgorithms extends StrictLogging {
+
+  def optimize[X, Y, M](x: X, y: Y, hp: Hyperparameters,
+                        opt: (X, Y, Properties) => ClassificationValidations[M]): List[(Properties, Double)] = {
+    val bestModels = hp.grid().toArray(k => new Array[Properties](k)).map { params =>
+      (params, Try(opt(x, y, params)))
+    }.filter(_._2.isSuccess).map(e => (e._1, e._2.get.avg.accuracy)).sortBy(_._2)(Ordering.Double.TotalOrdering.reverse)
+    val bestAccuracy: Double = bestModels(0)._2
+    bestModels.takeWhile(e => e._2 == bestAccuracy).toList.map(e => (e._1, e._2))
+  }
+
   def my_knn(x: Array[Array[Double]], y: Array[Int], k: Int): ClassificationValidations[KNN[Array[Double]]] = {
     smile.validation.cv.classification(k = 10, x, y) { case (x, y) => classification.knn(x, y, k = k) }
   }
