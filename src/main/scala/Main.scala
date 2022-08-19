@@ -37,10 +37,19 @@ object Main extends StrictLogging {
     // best MLP: accuracy < 70%
   }
 
-  def main(args: Array[String]): Unit = {
-    logger.info("start")
+  def main_classification(): Unit = {
+    logger.info("start classification")
     wine()
     spam()
     cancer()
+  }
+
+  def main_regression(): Unit = {
+    logger.info("start regression")
+  }
+
+  def main(args: Array[String]): Unit = {
+    main_classification()
+    main_regression()
   }
 }
