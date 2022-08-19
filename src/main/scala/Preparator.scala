@@ -27,7 +27,8 @@ object Preparator {
             case i: java.lang.Integer => i.toDouble
             case l: java.lang.Long => l.toDouble
             case d: java.lang.Double => d
-            case c: java.lang.Character => Character.getNumericValue(c).toDouble
+            case c: java.lang.Character => (Character.toLowerCase(c) - 'a').toInt.toDouble
+            case s: java.lang.String if s.length == 1 => (Character.toLowerCase(s.charAt(0)) - 'a').toInt.toDouble
             case _ => Double.NaN
           }
           converted
