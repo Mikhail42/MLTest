@@ -22,7 +22,17 @@ object Preparator {
     val x_double_data: Array[Array[Double]] = Array.ofDim[Double](x_data.size(), x_data.ncol())
     for (k <- 0 until x_data.ncol()) {
       for (i <- 0 until x_data.size()) {
-        x_double_data(i)(k) = Try(x_data.get(i, k).toString.toDouble).getOrElse(Double.NaN)
+        val d: Double = Try {
+          val converted: Double = x_data.get(i, k) match {
+            case i: java.lang.Integer => i.toDouble
+            case l: java.lang.Long => l.toDouble
+            case d: java.lang.Double => d
+            case c: java.lang.Character => Character.getNumericValue(c).toDouble
+            case _ => Double.NaN
+          }
+          converted
+        }.getOrElse(Double.NaN)
+        x_double_data(i)(k) = d
       }
     }
     (x_double_data, y)
