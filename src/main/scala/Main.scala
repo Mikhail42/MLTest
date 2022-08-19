@@ -37,6 +37,11 @@ object Main extends StrictLogging {
     // best MLP: accuracy < 70%
   }
 
+  def servo(): Unit = {
+    val spamPath = Paths.get(getClass.getClassLoader.getResource("servo.csv").toURI).toFile
+    RegressionAlgorithms.show_best(spamPath, y_column_id = -1)
+  }
+
   def main_classification(): Unit = {
     logger.info("start classification")
     wine()
@@ -46,6 +51,7 @@ object Main extends StrictLogging {
 
   def main_regression(): Unit = {
     logger.info("start regression")
+    servo()
   }
 
   def main(args: Array[String]): Unit = {
