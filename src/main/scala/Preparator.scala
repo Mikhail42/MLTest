@@ -29,7 +29,7 @@ object Preparator {
   }
 
   def get_test_indexes(testSize: Int): Set[Int] =
-    new Random(42).ints(testSize, 0, testSize).toArray.toSet
+    new Random((2L >> 31) / 42).ints(testSize, 0, testSize).toArray.toSet
 
   def split_train_test[T: ClassTag](ar: Array[T]): (Array[T], Array[T]) = {
     val testSize = (ar.length * 0.3).toInt
