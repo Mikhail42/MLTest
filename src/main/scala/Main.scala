@@ -31,11 +31,11 @@ object Main extends StrictLogging {
   def cancer(): Unit = {
     val spamPath = Paths.get(getClass.getClassLoader.getResource("breast-cancer-wisconsin.csv").toURI).toFile
     ClassificationAlgorithms.show_best(spamPath, y_column_id = -1)
-    // best RDA: does not work with NaN
-    // best k-NN: k=3, accuracy=95.86% ± 2.16
-    // best Parzen window: k=3, h=2.8, accuracy=96.59% ± 2.11
-    // best SVM: 0 accuracy (I have NaN values)
-    // best MLP: accuracy < 70%
+    // best RDA: alpha=0.6, accuracy=0.9555771365149832
+    // best k-NN: k=7, accuracy=96.83% ± 2.55
+    // best Parzen window: k=5, h=2.4, accuracy=96.68% ± 2.39
+    // best SVM: kernel=linear, C=0.5, epochs=2, accuracy=0.41
+    // best MLP: epochs=100, layers=ReLU(41), mini_batch=1, accuracy=0.964
   }
 
   def servo(): Unit = {
