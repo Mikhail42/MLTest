@@ -48,6 +48,8 @@ object Preparator extends StrictLogging {
   private def has_nan(mat: Array[Array[Double]]): Boolean = mat.exists(has_nan)
 
   private def convert_x_value(d: Object): Double = d match {
+    // I assume that we can convert ordered data to real number
+    // it is not always good, but other cases seems to be much more harder
     case d: java.lang.Double => d
     case i: java.lang.Integer => i.toDouble
     case l: java.lang.Long => l.toDouble
