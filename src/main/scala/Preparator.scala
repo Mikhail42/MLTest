@@ -57,11 +57,10 @@ object Preparator extends StrictLogging {
     case c: java.lang.Character if c == '?' => Double.NaN
     case c: java.lang.Character =>
       val lower = Character.toLowerCase(c)
-      if (lower.isDigit) lower.getNumericValue
-      else if (lower - 'a' >= 0 && 'z' - lower >= 0) (lower - 'a').toDouble
+      if (lower - 'a' >= 0 && 'z' - lower >= 0) (lower - 'a').toDouble
       else throw new RuntimeException(s"Can't convert $c to double")
-    case s: java.lang.String if s.length == 1 => convert_x_value(Character.valueOf(s.charAt(0)))
     case s: java.lang.String if Try(s.toDouble).isSuccess => s.toDouble
+    case s: java.lang.String if s.length == 1 => convert_x_value(Character.valueOf(s.charAt(0)))
     case x => throw new RuntimeException(s"Can't convert $x to double")
   }
 
