@@ -27,6 +27,7 @@ object Main extends StrictLogging {
     // k=1, h=1.2, accuracy=91.68% ± 1.05 for Parzen window
   }
 
+  /** @see {@link smile.feature.imputation} to handle missing values */
   def cancer(): Unit = {
     val spamPath = Paths.get(getClass.getClassLoader.getResource("breast-cancer-wisconsin.csv").toURI).toFile
     ClassificationAlgorithms.show_best(spamPath, y_column_id = -1)
