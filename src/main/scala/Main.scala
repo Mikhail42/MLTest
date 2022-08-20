@@ -41,6 +41,7 @@ object Main extends StrictLogging {
   def servo(): Unit = {
     val spamPath = Paths.get(getClass.getClassLoader.getResource("servo.csv").toURI).toFile
     RegressionAlgorithms.show_best(spamPath, y_column_id = -1)
+    // SVM mse=0.50 for epsilon=0.001, kernel=Gaussian(0.05), C=20
   }
 
   def main_classification(): Unit = {

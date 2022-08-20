@@ -44,6 +44,5 @@ object RegressionAlgorithms extends StrictLogging {
     val (x, y): (Array[Array[Double]], Array[Double]) = regression_extract_x_y(data, y_col_id)
     MathEx.normalize(x)
     logger.info("best SVM: " + my_best_svm(x, y))
-    // SVM mse=0.6327294689707279 for epsilon=0.01, kernel=Gaussian(0.1), C=30.0
   }
 }
