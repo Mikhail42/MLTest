@@ -38,10 +38,14 @@ object RegressionAlgorithms extends StrictLogging {
     optimize(x, y, hp, my_svm)
   }
 
-  def show_best(path: File, y_column_id: Int): Unit = {
+  def extract(path: File, y_column_id: Int): (Array[Array[Double]], Array[Double]) = {
     val data: DataFrame = read.csv(path.getAbsolutePath, header = false)
     val y_col_id = if (y_column_id >= 0) y_column_id else data.ncol() + y_column_id
-    val (x, y): (Array[Array[Double]], Array[Double]) = regression_extract_x_y(data, y_col_id)
+    regression_extract_x_y(data, y_col_id)
+  }
+
+  def show_best(path: File, y_column_id: Int): Unit = {
+    val (x, y): (Array[Array[Double]], Array[Double]) = extract(path, y_column_id)
     MathEx.normalize(x)
     logger.info("best SVM: " + my_best_svm(x, y))
   }
