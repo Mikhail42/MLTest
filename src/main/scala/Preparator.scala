@@ -36,16 +36,12 @@ object Preparator extends StrictLogging {
     val y = classification_extract_y(data, y_column_id)
     val x_data = data.drop(y_column_id)
     var x = extract_x(x_data)
-    if (has_nan(x)) {
+    if (Util.has_nan(x)) {
       val k = Math.min(x.length, x(0).length) - 1 // TODO: the number of eigenvectors used for imputation
       x = SVDImputer.impute(x, k, 5)
     }
     (x, y)
   }
-
-  private def has_nan(ar: Array[Double]): Boolean = ar.exists(_.isNaN)
-
-  private def has_nan(mat: Array[Array[Double]]): Boolean = mat.exists(has_nan)
 
   private def convert_x_value(d: Object): Double = d match {
     // I assume that we can convert ordered data to real number
