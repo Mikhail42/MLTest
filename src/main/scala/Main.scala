@@ -1,7 +1,9 @@
 package org.ionkin.ml.test
 
 import com.typesafe.scalalogging.StrictLogging
+import smile.validation.metric.MSE
 
+import java.io.File
 import java.nio.file.Paths
 
 object Main extends StrictLogging {
@@ -42,6 +44,19 @@ object Main extends StrictLogging {
     val spamPath = Paths.get(getClass.getClassLoader.getResource("servo.csv").toURI).toFile
     RegressionAlgorithms.show_best(spamPath, y_column_id = -1)
     // SVM mse=0.50 for epsilon=0.001, kernel=Gaussian(0.05), C=20
+  }
+
+  def ya_data(): Unit = {
+    val homePath = "/home/mika"
+    val spoiledPath = new File(s"$homePath/Data/YaData/spoiled_data.csv")
+    val filled = RegressionAlgorithms.extract(spoiledPath, y_column_id = 0)._1
+    val clean_file = new File(s"$homePath/Data/YaData/clean_data.csv")
+    val clean_data =  RegressionAlgorithms.extract(clean_file, y_column_id = 0)._1
+    var mse: Double = 0
+    for (k <- filled.indices) {
+      mse += MSE.of(clean_data(k), filled(k))
+    }
+    println(s"ya_data MSE: ${mse / filled.length}")
   }
 
   def main_classification(): Unit = {
